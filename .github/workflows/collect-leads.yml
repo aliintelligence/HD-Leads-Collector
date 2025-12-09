@@ -1,0 +1,47 @@
+name: Collect HD Leads
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  collect-leads:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Create credentials file
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          HD_API_KEY=${{ secrets.HD_API_KEY }}
+          HD_API_SECRET=${{ secrets.HD_API_SECRET }}
+          MVENDOR_ID=50020059
+          GOOGLE_CREDENTIALS_FILE=credentials.json
+          SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}
+          SHEET_NAME=Leads
+          EOF
+
+      - name: Collect leads
+        run: |
+          python collect_leads.py --days 1
+
+      - name: Summary
+        run: |
+          echo "Lead collection completed at $(date)"

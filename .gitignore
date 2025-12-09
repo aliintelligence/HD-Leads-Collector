@@ -1,0 +1,32 @@
+# Environment
+.env
+*.env
+
+# Google credentials
+credentials.json
+token.json
+*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Output files
+*.csv
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db

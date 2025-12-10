@@ -37,6 +37,8 @@ class SheetsManager:
         'Program',
         'MVendor',
         'Description',
+        'Question Answers',
+        'Notes',
         'Last Updated'
     ]
 
@@ -72,7 +74,7 @@ class SheetsManager:
             # Check if headers exist
             result = self.service.spreadsheets().values().get(
                 spreadsheetId=self.spreadsheet_id,
-                range=f"{sheet_name}!A1:S1"
+                range=f"{sheet_name}!A1:U1"
             ).execute()
 
             values = result.get('values', [])
@@ -81,7 +83,7 @@ class SheetsManager:
                 # Set headers
                 self.service.spreadsheets().values().update(
                     spreadsheetId=self.spreadsheet_id,
-                    range=f"{sheet_name}!A1:S1",
+                    range=f"{sheet_name}!A1:U1",
                     valueInputOption='RAW',
                     body={'values': [self.HEADERS]}
                 ).execute()
@@ -115,6 +117,26 @@ class SheetsManager:
         except HttpError as e:
             print(f"Error creating sheet: {e}")
 
+    def _extract_notes(self, lead: Dict) -> str:
+        """Extract notes from lead and combine into a single string"""
+        notes_data = lead.get('ListOfSfinotesws')
+        if not notes_data:
+            return ''
+
+        notes_list = notes_data.get('Sfinotesws', [])
+        if isinstance(notes_list, dict):
+            notes_list = [notes_list]
+
+        # Combine all notes with timestamps
+        notes_text = []
+        for note in notes_list:
+            note_text = note.get('Note', '')
+            if note_text:
+                created = note.get('Created', '')
+                notes_text.append(f"[{created}] {note_text}")
+
+        return ' | '.join(notes_text)
+
     def _lead_to_row(self, lead: Dict) -> List:
         """Convert a lead dictionary to a row"""
         return [
@@ -136,6 +158,8 @@ class SheetsManager:
             lead.get('SFIProgramGroupNameUnconstrained', ''),
             lead.get('SFIMVendor', ''),
             lead.get('Description', ''),
+            lead.get('MMSVQuestionAnswers', ''),
+            self._extract_notes(lead),
             datetime.now().strftime('%m/%d/%Y %H:%M:%S')
         ]
 
@@ -178,7 +202,7 @@ class SheetsManager:
         try:
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=self.spreadsheet_id,
-                range=f"{sheet_name}!A:S",
+                range=f"{sheet_name}!A:U",
                 valueInputOption='RAW',
                 insertDataOption='INSERT_ROWS',
                 body={'values': rows}
@@ -205,7 +229,7 @@ class SheetsManager:
             # Clear existing data (keep headers)
             self.service.spreadsheets().values().clear(
                 spreadsheetId=self.spreadsheet_id,
-                range=f"{sheet_name}!A2:S"
+                range=f"{sheet_name}!A2:U"
             ).execute()
             print(f"Cleared existing data in {sheet_name}")
 
